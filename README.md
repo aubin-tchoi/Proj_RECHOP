@@ -1,2 +1,3 @@
 # Proj_RECHOP
-Projet RECHOP 2020-2021
+
+Ici on notera le nom des différentes variables que l'on utilise.
