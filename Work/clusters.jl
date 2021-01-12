@@ -1,5 +1,3 @@
-########################### Formation de clusters par région ######################
-#INCLUDES
 include("dimensions.jl")
 include("emballage.jl")
 include("usine.jl")
@@ -9,15 +7,6 @@ include("instance.jl")
 include("route.jl")
 include("solution.jl")
 include("write.jl")
-
-instance = lire_instance(joinpath("..", "TOUT", "europe.csv"))
-
-######################### Variables ###############################
-global taille_max_clusters = 4                       #Hors usine #attention petite.csv n'a que 3 fournisseurs et il faut taille_clusters<=instance.F
-#global Nbr_clusters = ceil(Int, instance.F / taille_max_clusters)    #min = part_ent_sup(instance.F/taille_clusters) le coût d'introduction d'une nouvelle route est 150* plus importante que le coût kilométrique. Il est donc probable qu'il soit plus intéressant de prendre le nbr de route minimum qui à ce que chaque camion parcours plus de distance.
-global Nbr_regions_x = 8
-global Nbr_regions_y = 3
-global Time_max_optimization = 60        #in sec
 
 ##### Fonction de parsing de sous-instance #########################
 function write_instance(instance::Instance, path::String)::Bool
@@ -82,7 +71,7 @@ function write_instance(instance::Instance, path::String)::Bool
 end
 
 ##### Fonction de découpage de l'instance #########################################
-function decoupage_instance(instance::Instance, Nbr_regions_x::Int64, Nbr_regions_y::Int64)
+function decoupage_instance(instance::Instance, Nbr_regions_x::Int64, Nbr_regions_y::Int64, X::Array, Y::Array)
     min_x = typemax(Int)
     min_y = typemax(Int)
     max_x = typemin(Int)
@@ -273,48 +262,51 @@ end
 
 
 
+function makeClusters(instance::Instance, Nbr_regions_x::Int64, Nbr_regions_y::Int64)
+    ### Création des clusters ###
 
-### Création des clusters ###
+    Base.show(instance)
 
-Base.show(instance)
+    Clusters_matrix_complete = Array{Array{Int64,2},1}(undef, 0)
+    X = []
+    Y = []
 
-global Clusters_matrix_complete = Array{Array{Int64,2},1}(undef, 0)
-global X = []
-global Y = []
+    decoupage_instance(instance, Nbr_regions_x, Nbr_regions_y, X, Y)
 
-decoupage_instance(instance, Nbr_regions_x, Nbr_regions_y)
+    for i = 1:length(X)
+        x = X[i]
+        y = Y[i]
+        name_file = "sous-instance_" * string(x) * "_" * string(y) * ".csv"
+        instance_temp = lire_instance(name_file)
 
-for i = 1:length(X)
-    x = X[i]
-    y = Y[i]
-    name_file = "sous-instance_" * string(x) * "_" * string(y) * ".csv"
-    instance_temp = lire_instance(name_file)
+        global Nbr_clusters = ceil(Int, instance_temp.F / taille_max_clusters)
+        global Clusters_fournisseurs_temp = zeros(Nbr_clusters, instance_temp.F)
 
-    global Nbr_clusters = ceil(Int, instance_temp.F / taille_max_clusters)
-    global Clusters_fournisseurs_temp = zeros(Nbr_clusters, instance_temp.F)
+        println(Solution_Optimale(instance_temp))
 
-    println(Solution_Optimale(instance_temp))
-
-    name_file_2 = "correspondance_fournisseurs_" * string(x) * "_" * string(y) * ".csv"
-    correspondance_fournisseurs_text = open(name_file_2) do file
-        readlines(file)
-    end
-    correspondance_vect_text = split(correspondance_fournisseurs_text[1])
-    correspondance_fournisseurs = []
-    for f in correspondance_vect_text
-        push!(correspondance_fournisseurs, parse(Int, f))
-    end
-
-    for i = 1:Nbr_clusters
-        cluster_temp_index_complet = zeros(Int64, 1, instance.F)
-        for j in 1:instance_temp.F
-            if Clusters_fournisseurs_temp[i,j] == 1
-                cluster_temp_index_complet[correspondance_fournisseurs[j]] = 1
-            end
+        name_file_2 = "correspondance_fournisseurs_" * string(x) * "_" * string(y) * ".csv"
+        correspondance_fournisseurs_text = open(name_file_2) do file
+            readlines(file)
         end
-        push!(Clusters_matrix_complete, cluster_temp_index_complet)
-    end
-end
+        correspondance_vect_text = split(correspondance_fournisseurs_text[1])
+        correspondance_fournisseurs = []
+        for f in correspondance_vect_text
+            push!(correspondance_fournisseurs, parse(Int, f))
+        end
 
-#println(Solution_Optimale(instance))
-#println(Clusters_fournisseurs)
+        for i = 1:Nbr_clusters
+            cluster_temp_index_complet = zeros(Int64, 1, instance.F)
+            for j in 1:instance_temp.F
+                if Clusters_fournisseurs_temp[i,j] == 1
+                    cluster_temp_index_complet[correspondance_fournisseurs[j]] = 1
+                end
+            end
+            push!(Clusters_matrix_complete, cluster_temp_index_complet)
+        end
+    end
+
+    #println(Solution_Optimale(instance))
+    #println(Clusters_fournisseurs)
+
+    return Clusters_matrix_complete
+end
