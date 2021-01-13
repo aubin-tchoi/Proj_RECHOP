@@ -27,7 +27,7 @@ end
 
 function solve_plne(instance::Instance, clusters::Array{Array{Int64,1},1}, K::Int64)
     sol_clusters = Array{Int64, 6}(undef, instance.E, size(clusters, 1), instance.J, K, 4 + instance.U, 4 + instance.U)
-    
+    val = 0
     for e = 1:instance.E
         println("DEBUT OK")
         model = Model(with_optimizer(Gurobi.Optimizer,  TimeLimit = 10))
@@ -127,6 +127,19 @@ function solve_plne(instance::Instance, clusters::Array{Array{Int64,1},1}, K::In
             end
         end
 
+
+        for i = 1:size(clusters, 1)
+            for j = 1:instance.J
+                for k = 1:K
+                    for a = 1:(4 + instance.U)
+                        for b = 1(4 + instance.U)
+                            @constraint(model, x[i, j, k, a, b] >= 0)
+                        end
+                    end
+                end
+            end
+        end
+        
         println("CONSTRAINTS OK")
 
         @objective(
@@ -163,8 +176,10 @@ function solve_plne(instance::Instance, clusters::Array{Array{Int64,1},1}, K::In
                 end
             end
         end
+        val += JuMP.objective_value(model)
     end
-    #println(JuMP.objective_value(model))
+    println("SOLUTION : ")
+    println(val)
     return sol_clusters
 end
 
