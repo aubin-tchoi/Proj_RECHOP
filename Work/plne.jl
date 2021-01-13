@@ -17,7 +17,7 @@ function formatClusters(instance::Instance, clusters::Array{Array{Int64,2},1})
         newCluster = Array{Int64,1}(undef, 0)
         for f in 1:size(clusters[c], 2)
             if clusters[c][1,f] == 1
-                push!(newCluster, f + instance.U)
+                push!(newCluster, f)
             end
         end
         push!(newClusters, newCluster)
@@ -26,7 +26,7 @@ function formatClusters(instance::Instance, clusters::Array{Array{Int64,2},1})
 end
 
 function solve_plne(instance::Instance, clusters::Array{Array{Int64,1},1}, K::Int64)
-    sol_clusters = Array{Array{Int64,5}, 1}(undef, size(clusters, 1))
+    sol_clusters = Array{Int64, 6}(undef, instance.E, size(clusters, 1), instance.J, K, 4 + instance.U, 4 + instance.U)
     
     for e = 1:instance.E
         println("DEBUT OK")
@@ -103,17 +103,13 @@ function solve_plne(instance::Instance, clusters::Array{Array{Int64,1},1}, K::In
 
         println(size(instance.fournisseurs))
         println(size(clusters))
-        println(size(instance.fournisseurs[1].b⁻))
+        println(clusters)
 
         # Fournisseurs
         for i = 1:size(clusters, 1)
             for j = 1:instance.J
-                for f = 1:4
-                    if (j >= 2)
-                        println(clusters[i][f])
-                        println(instance.fournisseurs[clusters[i][f]])
-                        println(instance.fournisseurs[clusters[i][f]].v)
-                        println(instance.fournisseurs[clusters[i][f]].b⁻[e, j])
+                for f = 1:size(clusters[i], 1)
+                    if j >= 2
                         @constraint(model, s[i, j, f] - sum(sum((x[i, j, k, a, f] - x[i, j, k, f, a]) for a = 1:(4 + instance.U)) for k = 1:K) >= s[i, j - 1, f] - instance.fournisseurs[clusters[i][f]].b⁻[e, j])
                         @constraint(model, s2[i, j - 1, f] >= instance.fournisseurs[clusters[i][f]].b⁻[e, j])
                     end
@@ -138,14 +134,14 @@ function solve_plne(instance::Instance, clusters::Array{Array{Int64,1},1}, K::In
             Min,
             sum(
                 sum(
-                    sum(sum(sum(d[i, j, k, 4 + u, f] * (instance.γ * instance.graphe.d[instance.usines[u].v, instance.fournisseurs[clusters[i][f]].v] + instance.cstop) for u = 1:instance.U) for f = 1:4) for k = 1:K)
+                    sum(sum(sum(d[i, j, k, 4 + u, f] * (instance.γ * instance.graphe.d[instance.usines[u].v, instance.fournisseurs[clusters[i][f]].v] + instance.cstop) for u = 1:instance.U) for f = 1:size(clusters[i], 1)) for k = 1:K)
                     +
-                    sum(sum(sum(d[i, j, k, f1, f2] * (instance.γ * instance.graphe.d[instance.usines[u].v, instance.fournisseurs[clusters[i][f]].v] + instance.cstop) for f1 = 1:4) for f2 = 1:4) for k = 1:K)
+                    sum(sum(sum(d[i, j, k, f1, f2] * (instance.γ * instance.graphe.d[instance.fournisseurs[clusters[i][f1]].v, instance.fournisseurs[clusters[i][f2]].v] + instance.cstop) for f1 = 1:size(clusters[i], 1)) for f2 = 1:size(clusters[i], 1)) for k = 1:K)
                     +
                     sum(instance.usines[u].cs[e] * (s1[i, j, u + 4] - instance.usines[u].r[e, j]) for u = 1:instance.U)
                     +
                     sum(instance.fournisseurs[clusters[i][f]].cs[e] * (s1[i, j, f] - instance.fournisseurs[clusters[i][f]].r[e, j])
-                    + instance.fournisseurs[clusters[i][f]].cexc[e] * (s2[i, j, f] - s[i, j, f]) for f = 1:4)
+                    + instance.fournisseurs[clusters[i][f]].cexc[e] * (s2[i, j, f] - s[i, j, f]) for f = 1:size(clusters[i], 1))
                 for j = 1:instance.J)
             for i = 1:size(clusters, 1)
             )
@@ -154,13 +150,14 @@ function solve_plne(instance::Instance, clusters::Array{Array{Int64,1},1}, K::In
         println("OBJECTIVE OK")
 
         JuMP.optimize!(model)
+        println(size(x))
 
         for j = 1:instance.J
             for i = 1:size(clusters, 1)
-                for a = 1:(4 + instance.U)
-                    for b = 1:(4 + instance.U)
+                for a = 1:size(x, 4)
+                    for b = 1:size(x, 5)
                         for k = 1:K
-                            sol_clusters[i][e, j, k, a, b] = JuMP.value(x[i, j, k, a, b])
+                            sol_clusters[e, i, j, k, a, b] = JuMP.value(x[i, j, k, a, b])
                         end
                     end
                 end
