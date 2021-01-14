@@ -12,12 +12,12 @@ include("write.jl")
 include("flow.jl")
 include("dispatch.jl")
 include("../code_Julia/cost.jl")
-include("../code_Julia/write")
 
-instance = lire_instance("Work/instances/maroc.csv")
+#= Ouverture de l'instance (pas plus d'une minute) =#
+instance = lire_instance("Work/instances/europe.csv")
 timerFlow = 45          # exprimé en secondes
 timerDispatch = 5       # exprimé en secondes
-
+#=
 #= flow est un array de dimension 4 : e, j, u, f
     flow[e, j, u, f] : combien l'usine u doit fournir au fournisseur f en emballage e le jour j =#
 flow = solveFlow(instance, timerFlow)
@@ -29,10 +29,60 @@ println("Flow done")
 dispatch = solveDispatch(instance, flow, timerDispatch)
 println("Dispatch done")
 
+#= On écrit la solution dans le format demandé (classe Solution) =#
 sol = formatSolution(instance, dispatch)
 println("Solution formatted")
 
 println("Total cost :")
 println(cost(sol, instance))
 
+#= On écrit la solution dans le fichier texte solution.txt =#
 write_sol_to_file(sol, "solution.txt")
+=#
+
+function writeCost(instance::Instance, solution::Solution, path::String)
+    open(path, "w") do file
+        U, F, J = instance.U, instance.F, instance.J
+        usines, fournisseurs = instance.usines, instance.fournisseurs
+
+        su, sf = compute_stocks(solution, instance)
+
+        c = 0.0
+        cu = 0.0
+        cf = 0.0
+        cr = 0.0
+
+        for u = 1:U
+            cc = cost(usines[u], su[:, u, :])
+            cu += cc
+            c += cc
+        end
+        write(file, "Coût usine : \n")
+        write(file, string(cu))
+        write(file, "\n")
+
+        for f = 1:F
+            cc = cost(fournisseurs[f], sf[:, f, :])
+            cf += cc
+            c += cc
+        end
+        write(file, "Coût fournisseurs : \n")
+        write(file, string(cf))
+        write(file, "\n")
+
+        for route in solution.routes
+            cc = cost(route, instance)
+            cr += cc
+            c += cc
+        end
+        
+        write(file, "Coût routes : \n")
+        write(file, string(cr))
+        write(file, "\n")
+
+        write(file, "Coût total : \n")
+        write(file,  string(c))
+    end
+end
+
+writeCost(instance, lire_solution("solution.txt"), "totalCost.txt")

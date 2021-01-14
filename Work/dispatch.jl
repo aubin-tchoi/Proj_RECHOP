@@ -11,6 +11,7 @@ include("route.jl")
 include("solution.jl")
 include("write.jl")
 
+#= On écrit le PLNE pour un jour et un couple (u, f) =#
 function solveDispatchSmall(instance::Instance, flow::Array{Float64, 4}, j::Int, u::Int, f::Int, timeLimit::Int)
 
     model = Model(with_optimizer(Gurobi.Optimizer,  TimeLimit = timeLimit))
@@ -54,22 +55,24 @@ function solveDispatchSmall(instance::Instance, flow::Array{Float64, 4}, j::Int,
     return JuMP.value.(x)
 end
 
+#= On loop sur les jours et les couples (u, f) pour résoudre des PLNE indépendants =#
 function solveDispatch(instance::Instance, flow::Array{Float64, 4}, timeLimit::Int)
 
-    # On résoud le PLNE qui répartit les emballages dans des camions pour chaque couple (u, f) et pour chaque jour
+    # On écrit les solutions du PLNE dans un Array de dimension 3 (1 élément : solution d'1 PLNE (Array de dimension 2))
     dispatch = Array{Array{Int, 2}, 3}(undef, instance.J, instance.U, instance.F)
 
     for j = 1:instance.J
         for u = 1:instance.U
             for f = 1:instance.F
+                # On résoud le PLNE qui répartit les emballages dans des camions pour chaque couple (u, f) et pour chaque jour
                 dispatch[j, u, f] = solveDispatchSmall(instance, flow, j, u, f, timeLimit)
             end
         end
     end
-    
     return dispatch
 end
 
+#= On transforme l'array dispatch en une instance de Solution pour pouvoir utiliser les fonctions déjà codées =#
 function formatSolution(instance::Instance, dispatch::Array{Array{Int, 2}, 3})
     r = 1
     routes = Route[]
