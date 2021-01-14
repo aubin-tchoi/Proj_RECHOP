@@ -20,7 +20,7 @@ function solveDispatchSmall(instance::Instance, flow::Array{Float64, 4}, j::Int,
 
     #= Nombre max de camions dont on pourrait avoir besoin (+ 1 pour avoir au moins 1 camion)
     ici on prend les emballages séparés donc on aura potentiellement 1 camion quasi vide par emballage =#
-    K = floor(Int64, (sum(instance.emballages[e].l * flow[e, j, u, f] for e = 1:instance.E) + 1) / instance.L) + 1
+    K = floor(Int64, (sum(instance.emballages[e].l * flow[e, j, u, f] for e = 1:instance.E) + 1) / instance.L) + instance.E
 
     println("Nombre max de camions :")
     println(K)
@@ -30,7 +30,7 @@ function solveDispatchSmall(instance::Instance, flow::Array{Float64, 4}, j::Int,
 
     #= x[k, e] nombre d'emballage e transportés par le camion k
        d[k] == 1 ssi le camion k est utilisé =#
-    @variable(model, x[1:K, 1:instance.E], Int)
+    @variable(model, x[1:K, 1:instance.E] >= 0, Int)
     @variable(model, d[1:K], Bin)
 
     println("Variables initialized")
@@ -40,9 +40,6 @@ function solveDispatchSmall(instance::Instance, flow::Array{Float64, 4}, j::Int,
     for k = 1:K
         @constraint(model, sum(x[k, :]) <= instance.E * instance.L * instance.emballages[2].l * d[k])
         @constraint(model, sum(x[k, :]) >= d[k])
-        for e = 1:instance.E
-            @constraint(model, x[k, e] >= 0)
-        end
     end
 
     # La demande doit être satisfaite
@@ -93,7 +90,7 @@ end
 #= true si le camion k est utilisé le jour j entre u et f =#
 function isUsed(dispatch::Array{Array{Int, 2}, 3}, j, u, f, k)
     for e = 1:instance.E
-        if dispatch[j, u, f][k, e] >= 0
+        if dispatch[j, u, f][k, e] > 0
             return true
         end
     end
@@ -104,14 +101,9 @@ end
 function formatSolution(instance::Instance, dispatch::Array{Array{Int, 2}, 3})::Solution
     r = 1
     routes = Route[]
-    println(dispatch)
     for j = 1:instance.J
         for u = 1:instance.U
             for f = 1:instance.F
-                println(size(dispatch))
-                println(j)
-                println(u)
-                println(f)
                 for k = 1:size(dispatch[j, u, f], 1)
                     if isUsed(dispatch, j, u, f, k)
                         Q = Int[]
