@@ -1,6 +1,5 @@
 using JuMP, Gurobi
 
-#INCLUDES
 include("dimensions.jl")
 include("emballage.jl")
 include("usine.jl")
@@ -11,7 +10,7 @@ include("route.jl")
 include("solution.jl")
 include("write.jl")
 
-function solve_flot(instance::Instance, timeLimit::Int)
+function solveFlow(instance::Instance, timeLimit::Int)
 
     model = Model(with_optimizer(Gurobi.Optimizer,  TimeLimit = timeLimit))
 

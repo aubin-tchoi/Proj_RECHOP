@@ -1,7 +1,5 @@
-########################### Formation de clusters par région ######################
+# Main 
 
-
-#INCLUDES
 include("dimensions.jl")
 include("emballage.jl")
 include("usine.jl")
@@ -11,26 +9,27 @@ include("instance.jl")
 include("route.jl")
 include("solution.jl")
 include("write.jl")
-include("clusters.jl")
-include("plne.jl")
-include("flot.jl")
+include("flow.jl")
+include("dispatch.jl")
+include("../code_Julia/cost.jl")
 
-instance = lire_instance("Work/instances/europe.csv")
+instance = lire_instance("Work/instances/maroc.csv")
+timerFlow = 45          # exprimé en secondes
+timerDispatch = 5       # exprimé en secondes
 
-######################### Variables ###############################
-taille_max_clusters = 4                       #Hors usine #attention petite.csv n'a que 3 fournisseurs et il faut taille_clusters<=instance.F
-#global Nbr_clusters = ceil(Int, instance.F / taille_max_clusters)    #min = part_ent_sup(instance.F/taille_clusters) le coût d'introduction d'une nouvelle route est 150* plus importante que le coût kilométrique. Il est donc probable qu'il soit plus intéressant de prendre le nbr de route minimum qui à ce que chaque camion parcours plus de distance.
-Nbr_regions_x = 1
-Nbr_regions_y = 1
-Time_max_optimization = 45        #in sec
+#= flow est un array de dimension 4 : e, j, u, f
+    flow[e, j, u, f] : combien l'usine u doit fournir au fournisseur f en emballage e le jour j =#
+flow = solveFlow(instance, timerFlow)
+println("Flow done")
 
-#=
-clusters = makeClusters(instance, Nbr_regions_x, Nbr_regions_y)
+#= On doit maintenant résoudre un PLNE pour chaque triplet (j, u, f) qui permettra de trouver
+    le nombre de camions nécessaires et la répartition des chargements dans ces camions
+    dispatch[j, u, f] : matrice [camion, quantité] transportée pour le jour j depuis l'usine u vers le fournisseur f =#
+dispatch = solveDispatch(instance, flow, timerDispatch)
+println("Dispatch done")
 
-println("CLUSTERS OK")
-plne_sol = solve_plne(instance, formatClusters(instance, clusters), 20) 
-=#
+sol = formatSolution(instance, dispatch)
+println("Solution formatted")
 
-flot = solve_flot(instance, Time_max_optimization)
-
-println(flot)
+println("Total cost :")
+println(cost(sol, instance))
