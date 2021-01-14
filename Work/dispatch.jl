@@ -20,7 +20,7 @@ function solveDispatchSmall(instance::Instance, flow::Array{Float64, 4}, j::Int,
 
     #= Nombre max de camions dont on pourrait avoir besoin (+ 1 pour avoir au moins 1 camion)
     ici on prend les emballages séparés donc on aura potentiellement 1 camion quasi vide par emballage =#
-    K = floor(Int64, (sum(instance.emballages[e].l * flow[e, j, u, f] for e = 1:instance.E) + 1) / instance.L) + 1
+    K = floor(Int64, (sum(instance.emballages[e].l * flow[e, j, u, f] for e = 1:instance.E) + 1) / instance.L) + instance.E
 
     println("Nombre max de camions :")
     println(K)
@@ -108,10 +108,6 @@ function formatSolution(instance::Instance, dispatch::Array{Array{Int, 2}, 3})::
     for j = 1:instance.J
         for u = 1:instance.U
             for f = 1:instance.F
-                println(size(dispatch))
-                println(j)
-                println(u)
-                println(f)
                 for k = 1:size(dispatch[j, u, f], 1)
                     if isUsed(dispatch, j, u, f, k)
                         Q = Int[]
