@@ -12,6 +12,7 @@ include("write.jl")
 include("flow.jl")
 include("dispatch.jl")
 include("../code_Julia/cost.jl")
+include("../code_Julia/write")
 
 instance = lire_instance("Work/instances/maroc.csv")
 timerFlow = 45          # exprimé en secondes
@@ -33,3 +34,5 @@ println("Solution formatted")
 
 println("Total cost :")
 println(cost(sol, instance))
+
+write_sol_to_file(sol, "solution.txt")
