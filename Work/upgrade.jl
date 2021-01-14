@@ -15,15 +15,25 @@ include("../code_Julia/cost.jl")
 
 #= Retire les routes inutiles d'une solution =#
 function removeTruck(instance::Instance, solution::Solution)::Solution
-    currentSol = solution
+    currentSol = Solution(R = solution.R, routes = solution.routes)
     rCurrent = 1
-    for r = 1:size(solution.routes)
+    for r = 1:size(solution.routes, 1)
         initialCost = cost(currentSol, instance)
-        backup = currentSol
-        deleteat!(currentSol, r)
-        if cost(currentSol, instance) > initialCost
+        backup = Solution(R = currentSol.R, routes = currentSol.routes)
+        deleteat!(currentSol.routes, r)
+        nowCost = cost(currentSol, instance)
+
+        println("Costs :")
+        print("Initial cost :")
+        println(initialCost)
+        print("New cost :")
+        println(nowCost)
+
+        if  nowCost > initialCost
+            println("Modification rejected")
             rCurrent  = rCurrent + 1
-            currentSol = backup
+            currentSol = Solution(R = backup.R, routes = backup.routes)
+            println(cost(currentSol, instance) == cost(backup, instance))
         end
     end
     return currentSol

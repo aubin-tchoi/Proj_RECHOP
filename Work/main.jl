@@ -18,7 +18,7 @@ include("../code_Julia/cost.jl")
 instance = lire_instance("Work/instances/espagne.csv")
 timerFlow = 1500          # exprimé en secondes
 timerDispatch = 50       # exprimé en secondes
-notAlreadyWritten = true
+notAlreadyWritten = false
 
 if notAlreadyWritten
     #= flow est un array de dimension 4 : e, j, u, f
@@ -88,6 +88,10 @@ else
         end
     end
 
-    writeCost(instance, lire_solution("solution.txt"), "totalCost.txt")
+    newSol = removeTruck(instance, lire_solution("solution.txt"))
+    writeCost(instance, newSol, "totalCost.txt")
+
+    
+    write_sol_to_file(newSol, "solution2.txt")
 end
 

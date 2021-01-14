@@ -82,7 +82,7 @@ function solveDispatch(instance::Instance, flow::Array{Float64, 4}, timeLimit::I
                     # On résoud le PLNE qui répartit les emballages dans des camions pour chaque couple (u, f) et pour chaque jour
                     dispatch[j, u, f] = solveDispatchSmall(instance, flow, j, u, f, timeLimit)
                 else
-                    dispatch[j, u, f] = [0]
+                    dispatch[j, u, f] =  Array{Int}(undef, 0, 2)
                 end
             end
         end
