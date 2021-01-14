@@ -15,10 +15,10 @@ include("upgrade.jl")
 include("../code_Julia/cost.jl")
 
 #= Ouverture de l'instance (pas plus d'une minute) =#
-instance = lire_instance("instances/espagne.csv")
+instance = lire_instance("instances/europe.csv")
 timerFlow = 1000          # exprimé en secondes
 timerDispatch = 50       # exprimé en secondes
-notAlreadyWritten = true
+notAlreadyWritten = false
 
 if notAlreadyWritten
     #= flow est un array de dimension 4 : e, j, u, f
