@@ -11,6 +11,7 @@ include("solution.jl")
 include("write.jl")
 include("flow.jl")
 include("dispatch.jl")
+include("upgrade.jl")
 include("../code_Julia/cost.jl")
 
 #= Ouverture de l'instance (pas plus d'une minute) =#
