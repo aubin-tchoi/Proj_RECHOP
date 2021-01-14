@@ -30,7 +30,7 @@ function solveDispatchSmall(instance::Instance, flow::Array{Float64, 4}, j::Int,
 
     #= x[k, e] nombre d'emballage e transportés par le camion k
        d[k] == 1 ssi le camion k est utilisé =#
-    @variable(model, x[1:K, 1:instance.E], Int)
+    @variable(model, x[1:K, 1:instance.E] >= 0, Int)
     @variable(model, d[1:K], Bin)
 
     println("Variables initialized")
@@ -40,9 +40,6 @@ function solveDispatchSmall(instance::Instance, flow::Array{Float64, 4}, j::Int,
     for k = 1:K
         @constraint(model, sum(x[k, :]) <= instance.E * instance.L * instance.emballages[2].l * d[k])
         @constraint(model, sum(x[k, :]) >= d[k])
-        for e = 1:instance.E
-            @constraint(model, x[k, e] >= 0)
-        end
     end
 
     # La demande doit être satisfaite
@@ -104,7 +101,6 @@ end
 function formatSolution(instance::Instance, dispatch::Array{Array{Int, 2}, 3})::Solution
     r = 1
     routes = Route[]
-    println(dispatch)
     for j = 1:instance.J
         for u = 1:instance.U
             for f = 1:instance.F

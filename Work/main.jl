@@ -1,8 +1,4 @@
 # Main 
-import Pkg;
-Pkg.add("Gurobi")
-Pkg.build("Gurobi")
-ENV["GUROBI_HOME"] = "C:/gurobi911/win64/bin"
 
 include("dimensions.jl")
 include("emballage.jl")
@@ -16,13 +12,14 @@ include("write.jl")
 include("flow.jl")
 include("dispatch.jl")
 include("upgrade.jl")
+include("../code_Julia/feasibility.jl")
 include("../code_Julia/cost.jl")
 
 #= Ouverture de l'instance (pas plus d'une minute) =#
-instance = lire_instance("Work/instances/espagne.csv")
+instance = lire_instance("Work/instances/europe.csv")
 timerFlow = 1500          # exprimé en secondes
 timerDispatch = 50       # exprimé en secondes
-notAlreadyWritten = true
+notAlreadyWritten = false
 
 if notAlreadyWritten
     #= flow est un array de dimension 4 : e, j, u, f
@@ -92,9 +89,6 @@ else
         end
     end
 
-    newSol = removeTruck(instance, lire_solution("solution.txt"), 20)
-
-    writeCost(instance, newSol, "totalCost.txt")
-    write_sol_to_file(newSol, "solution2.txt")
 end
 
+println(feasibility(lire_solution("solution.txt"), instance))
