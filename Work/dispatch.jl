@@ -90,7 +90,7 @@ end
 #= true si le camion k est utilisé le jour j entre u et f =#
 function isUsed(dispatch::Array{Array{Int, 2}, 3}, j, u, f, k)
     for e = 1:instance.E
-        if dispatch[j, u, f][k, e] >= 0
+        if dispatch[j, u, f][k, e] > 0
             return true
         end
     end
