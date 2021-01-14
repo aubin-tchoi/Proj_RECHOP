@@ -1,4 +1,8 @@
 # Main 
+import Pkg;
+Pkg.add("Gurobi")
+Pkg.build("Gurobi")
+ENV["GUROBI_HOME"] = "C:/gurobi911/win64/bin"
 
 include("dimensions.jl")
 include("emballage.jl")
