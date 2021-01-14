@@ -20,8 +20,8 @@ include("../code_Julia/cost.jl")
 
 #= Ouverture de l'instance (pas plus d'une minute) =#
 instance = lire_instance("Work/instances/europe.csv")
-timerFlow = 900          # exprimé en secondes
-timerDispatch = 10       # exprimé en secondes
+timerFlow = 1500          # exprimé en secondes
+timerDispatch = 50       # exprimé en secondes
 notAlreadyWritten = true
 
 if notAlreadyWritten
@@ -92,6 +92,9 @@ else
         end
     end
 
-    writeCost(instance, lire_solution("solution.txt"), "totalCost.txt")
+    newSol = removeTruck(instance, lire_solution("solution.txt"), 20)
+
+    writeCost(instance, newSol, "totalCost.txt")
+    write_sol_to_file(newSol, "solution2.txt")
 end
 
