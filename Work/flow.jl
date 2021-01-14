@@ -10,47 +10,29 @@ include("route.jl")
 include("solution.jl")
 include("write.jl")
 
-function solveFlow(instance::Instance, timeLimit::Int)
+function solveFlow(instance::Instance, timeLimit::Int, isInteger::Bool)
 
     model = Model(with_optimizer(Gurobi.Optimizer,  TimeLimit = timeLimit))
 
     println("Model initialized")
 
-    @variable(model, x[1:instance.E, 1:instance.J, 1:instance.U, 1:instance.F], Int)
-    @variable(model, su[1:instance.E, 1:instance.U, 1:instance.J], Int)
-    @variable(model, sf[1:instance.E, 1:instance.F, 1:instance.J], Int)
-    @variable(model, su1[1:instance.E, 1:instance.U, 1:instance.J], Int)
-    @variable(model, sf1[1:instance.E, 1:instance.F, 1:instance.J], Int)
-    @variable(model, sf2[1:instance.E, 1:instance.F, 1:instance.J], Int)
+    # x correspond à la quantité transportée, su au stock usine et sf au stock fournisseur
+    @variable(model, x[1:instance.E, 1:instance.J, 1:instance.U, 1:instance.F] >= 0, integer = isInteger)
+    @variable(model, su[1:instance.E, 1:instance.U, 1:instance.J] >= 0, integer = isInteger)
+    @variable(model, sf[1:instance.E, 1:instance.F, 1:instance.J], integer = isInteger)
+
+    # su', sf', sf" pour linéariser les max
+    @variable(model, su1[1:instance.E, 1:instance.U, 1:instance.J])
+    @variable(model, sf1[1:instance.E, 1:instance.F, 1:instance.J])
+    @variable(model, sf2[1:instance.E, 1:instance.F, 1:instance.J])
 
     println("Variables initialized")
-
-    # Quantités transportées positives
-    for e = 1:instance.E
-        for j = 1:instance.J
-            for u = 1:instance.U
-                for f = 1:instance.F
-                    @constraint(model, x[e, j, u, f] >= 0)
-                end
-            end
-        end
-    end
-
-    # Stock usine positif
-    for e = 1:instance.E
-        for u = 1:instance.U
-            for j = 1:instance.J
-                @constraint(model, su[e, u, j] >= 0)
-            end
-        end
-    end
-
     # Évolution du stock usine
     for e = 1:instance.E
         for u = 1:instance.U
-            @constraint(model, su[e, u, 1] == instance.usines[u].s0[e])
+            @constraint(model, su[e, u, 1] == instance.usines[u].s0[e] + instance.usines[u].b⁺[e, 1] - sum(x[e, 1, u, :]))
             for j = 2:instance.J
-                @constraint(model, su[e, u, j] == su[e, u, j - 1] + instance.usines[u].b⁺[e, j] - sum(x[e, j, u, f] for f = 1:instance.F))
+                @constraint(model, su[e, u, j] == su[e, u, j - 1] + instance.usines[u].b⁺[e, j] - sum(x[e, j, u, :]))
             end
         end
     end
@@ -68,10 +50,10 @@ function solveFlow(instance::Instance, timeLimit::Int)
     # Évolution du stock fournisseur
     for e = 1:instance.E
         for f = 1:instance.F
-            @constraint(model, sf[e, f, 1] == instance.fournisseurs[f].s0[e])
+            @constraint(model, sf[e, f, 1] == instance.fournisseurs[f].s0[e] + sum(x[e, 1, :, f]) - instance.fournisseurs[f].b⁻[e, 1])
             for j = 2:instance.J
-                @constraint(model, sf[e, f, j] - sum(x[e, j, u, f] for u = 1:instance.U) >= sf[e, f, j - 1] - instance.fournisseurs[f].b⁻[e, j])
-                @constraint(model, sf[e, f, j] - sum(x[e, j, u, f] for u = 1:instance.U) >= 0)
+                @constraint(model, sf[e, f, j] - sum(x[e, j, :, f]) >= sf[e, f, j - 1] - instance.fournisseurs[f].b⁻[e, j])
+                @constraint(model, sf[e, f, j] - sum(x[e, j, :, f]) >= 0)
             end
         end
     end
@@ -90,51 +72,24 @@ function solveFlow(instance::Instance, timeLimit::Int)
 
     println("Constraints initialized")
 
-    # Coût de transport (avec un nombre de camions pas entier)
-    function travelCost(x::Array{VariableRef, 4})
-        return 
-        sum(
-            sum(
-                sum(
-                    sum(x[e, j, u, f] * instance.emballages[e].l / instance.L * instance.γ * instance.graphe.d[instance.usines[u].v, instance.fournisseurs[f].v] for f = 1:instance.F
-                    ) for u = 1:instance.U
-                ) for j = 1:instance.J
-            ) for e = 1:instance.E
-        )
-    end
-
-    # Coût d'un excédent ou d'un déficit dans un fournisseur
-    function excessF(sf::Array{VariableRef, 3}, sf1::Array{VariableRef, 3}, sf2::Array{VariableRef, 3})
-        return sum(sum(sum(instance.fournisseurs[f].cs[e] * (sf1[e, f, j] - instance.fournisseurs[f].r[e, j])
-        + instance.fournisseurs[f].cexc[e] * (sf2[e, f, j] - sf[e, f, j]) for f = 1:instance.F) for j = 1:instance.J) for e = 1:instance.E)
-    end
-
-    # Coût d'un excédent en stock dans une usine
-    function excessU(su::Array{VariableRef, 3})
-        return sum(sum(sum(instance.usines[u].cs[e] * su[e, u, j] for j = 1:instance.J) for u = 1:instance.U) for e = 1:instance.E)
-    end
-
-    # Fonction objectif
+    # Fonction objectif (coût route, coût stock excédentaire usine, coût stock excédentaire/déficitaire fournisseur)
     @objective(model, Min,
-        sum(
-            sum(
-                sum(
-                    sum(x[e, j, u, f] * instance.emballages[e].l / instance.L * instance.γ * instance.graphe.d[instance.usines[u].v, instance.fournisseurs[f].v] for f = 1:instance.F
-                    ) for u = 1:instance.U
-                ) for j = 1:instance.J
-            ) for e = 1:instance.E
+        sum((x[e, j, u, f] * instance.emballages[e].l / instance.L) * instance.γ * instance.graphe.d[instance.usines[u].v, instance.fournisseurs[f].v]
+                        for f in 1:instance.F, u in 1:instance.U, j in 1:instance.J, e in 1:instance.E)
+        +
+        sum(instance.usines[u].cs[e] * su1[e, u, j]
+                    for j in 1:instance.J, u in 1:instance.U, e in 1:instance.E)
+        +
+        sum(instance.fournisseurs[f].cs[e] * (sf1[e, f, j] - instance.fournisseurs[f].r[e, j]) for f in 1:instance.F, j in 1:instance.J, e in 1:instance.E)
+        +
+        sum(instance.fournisseurs[f].cexc[e] * (sf2[e, f, j] - sf[e, f, j])
+                    for f in 1:instance.F, j in 1:(instance.J - 1), e in 1:instance.E)
         )
-        + sum(sum(sum(instance.usines[u].cs[e] * su1[e, u, j] for j = 1:instance.J) for u = 1:instance.U) for e = 1:instance.E)
-        + sum(sum(sum(instance.fournisseurs[f].cs[e] * (sf1[e, f, j] - instance.fournisseurs[f].r[e, j])
-        + instance.fournisseurs[f].cexc[e] * (sf2[e, f, j] - sf[e, f, j]) for f = 1:instance.F) for j = 1:instance.J) for e = 1:instance.E))
-        + excessU(su1)
+                
 
     println("Objective initialized")
 
     JuMP.optimize!(model)
-
-    println("Coût total :")
-    println(JuMP.objective_value(model))
 
     return JuMP.value.(x)
 end
