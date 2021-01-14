@@ -85,7 +85,6 @@ function solveFlow(instance::Instance, timeLimit::Int, isInteger::Bool)
         sum(instance.fournisseurs[f].cexc[e] * (sf2[e, f, j] - sf[e, f, j])
                     for f in 1:instance.F, j in 1:(instance.J - 1), e in 1:instance.E)
         )
-                
 
     println("Objective initialized")
 

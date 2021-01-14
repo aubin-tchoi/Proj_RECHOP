@@ -14,8 +14,8 @@ include("dispatch.jl")
 include("../code_Julia/cost.jl")
 
 #= Ouverture de l'instance (pas plus d'une minute) =#
-instance = lire_instance("instances/maroc.csv")
-timerFlow = 300          # exprimé en secondes
+instance = lire_instance("Work/instances/europe.csv")
+timerFlow = 900          # exprimé en secondes
 timerDispatch = 10       # exprimé en secondes
 notAlreadyWritten = true
 
@@ -89,3 +89,4 @@ else
 
     writeCost(instance, lire_solution("solution.txt"), "totalCost.txt")
 end
+
