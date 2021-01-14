@@ -14,8 +14,6 @@ function solveFlowAllE(instance::Instance, timeLimit::Int, isInteger::Bool)
 
     model = Model(with_optimizer(Gurobi.Optimizer,  TimeLimit = timeLimit))
 
-    println("Model initialized")
-
     # x correspond à la quantité transportée, su au stock usine et sf au stock fournisseur
     @variable(model, x[1:instance.E, 1:instance.J, 1:instance.U, 1:instance.F] >= 0, integer = isInteger)
     @variable(model, su[1:instance.E, 1:instance.U, 1:instance.J] >= 0, integer = isInteger)
@@ -26,7 +24,6 @@ function solveFlowAllE(instance::Instance, timeLimit::Int, isInteger::Bool)
     @variable(model, sf1[1:instance.E, 1:instance.F, 1:instance.J])
     @variable(model, sf2[1:instance.E, 1:instance.F, 1:instance.J])
 
-    println("Variables initialized")
     # Évolution du stock usine
     for e = 1:instance.E
         for u = 1:instance.U
@@ -70,8 +67,6 @@ function solveFlowAllE(instance::Instance, timeLimit::Int, isInteger::Bool)
         end
     end
 
-    println("Constraints initialized")
-
     # Fonction objectif (coût route, coût stock excédentaire usine, coût stock excédentaire/déficitaire fournisseur)
     @objective(model, Min,
         sum((x[e, j, u, f] * instance.emballages[e].l / instance.L) * instance.γ * instance.graphe.d[instance.usines[u].v, instance.fournisseurs[f].v]
@@ -86,8 +81,6 @@ function solveFlowAllE(instance::Instance, timeLimit::Int, isInteger::Bool)
                     for f in 1:instance.F, j in 1:(instance.J - 1), e in 1:instance.E)
         )
 
-    println("Objective initialized")
-
     JuMP.optimize!(model)
 
     return JuMP.value.(x)
@@ -97,22 +90,31 @@ end
 function solveFlow(instance::Instance, timeLimit::Int, isInteger::Bool)
 
     flowSol = Array{Float64, 4}(undef, instance.E, instance.J, instance.U, instance.F)
-    for e = 1:instance.E
-        model = Model(with_optimizer(Gurobi.Optimizer,  TimeLimit = timeLimit))
 
-        println("Model initialized")
+    for e = 1:instance.E
+
+        model = Model(with_optimizer(Gurobi.Optimizer,  TimeLimit = timeLimit))
 
         # x correspond à la quantité transportée, su au stock usine et sf au stock fournisseur
         @variable(model, x[1:instance.J, 1:instance.U, 1:instance.F] >= 0, integer = isInteger)
         @variable(model, su[1:instance.U, 1:instance.J] >= 0, integer = isInteger)
-        @variable(model, sf[1:instance.F, 1:instance.J], integer = isInteger)
+        @variable(model, sf[1:instance.F, 1:instance.J] >= 0, integer = isInteger)
+        @variable(model, k[1:instance.J, 1:instance.U, 1:instance.F] >= 0, integer = false)
 
         # su', sf', sf" pour linéariser les max
         @variable(model, su1[1:instance.U, 1:instance.J])
         @variable(model, sf1[1:instance.F, 1:instance.J])
         @variable(model, sf2[1:instance.F, 1:instance.J])
 
-        println("Variables initialized")
+        # Nombre de camions
+        for u = 1:instance.U
+            for j = 1:instance.J
+                for f = 1:instance.F
+                    @constraint(model, k[j, u, f] >= x[j, u, f] * instance.emballages[e].l / instance.L + 1)
+                end
+            end
+        end
+
         # Évolution du stock usine
         for u = 1:instance.U
             @constraint(model, su[u, 1] == instance.usines[u].s0[e] + instance.usines[u].b⁺[e, 1] - sum(x[1, u, :]))
@@ -148,10 +150,9 @@ function solveFlow(instance::Instance, timeLimit::Int, isInteger::Bool)
             end
         end
 
-        println("Constraints initialized")
-
         # Fonction objectif (coût route, coût stock excédentaire usine, coût stock excédentaire/déficitaire fournisseur)
         @objective(model, Min,
+            sum(k[j, u, f] * instance.ccam for j in 1:instance.J, u in 1:instance.U, f in 1:instance.F) +
             sum((x[j, u, f] * instance.emballages[e].l / instance.L) * instance.γ * instance.graphe.d[instance.usines[u].v, instance.fournisseurs[f].v]
                             for f in 1:instance.F, u in 1:instance.U, j in 1:instance.J)
             +
@@ -163,8 +164,6 @@ function solveFlow(instance::Instance, timeLimit::Int, isInteger::Bool)
             sum(instance.fournisseurs[f].cexc[e] * (sf2[f, j] - sf[f, j])
                         for f in 1:instance.F, j in 1:(instance.J - 1))
             )
-
-        println("Objective initialized")
 
         JuMP.optimize!(model)
 

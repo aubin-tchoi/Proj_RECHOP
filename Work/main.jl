@@ -13,12 +13,13 @@ include("flow.jl")
 include("dispatch.jl")
 include("upgrade.jl")
 include("../code_Julia/cost.jl")
+include("../code_Julia/feasibility.jl")
 
 #= Ouverture de l'instance (pas plus d'une minute) =#
 instance = lire_instance("instances/europe.csv")
 timerFlow = 1000          # exprimé en secondes
 timerDispatch = 50       # exprimé en secondes
-notAlreadyWritten = false
+notAlreadyWritten = true
 
 if notAlreadyWritten
     #= flow est un array de dimension 4 : e, j, u, f
@@ -88,9 +89,12 @@ else
         end
     end
 
-    newSol = removeTruck(instance, lire_solution("solution.txt"), 20)
+    sol = lire_solution("solution.txt")
+    newSol = removeTruck(instance, sol, 20)
+    newSol = combineTrucks(instance, sol, 50)
 
     writeCost(instance, newSol, "totalCost.txt")
     write_sol_to_file(newSol, "solution2.txt")
 end
 
+println(feasibility(sol, instance))
