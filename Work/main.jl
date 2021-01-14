@@ -15,9 +15,9 @@ include("upgrade.jl")
 include("../code_Julia/cost.jl")
 
 #= Ouverture de l'instance (pas plus d'une minute) =#
-instance = lire_instance("Work/instances/europe.csv")
-timerFlow = 900          # exprimé en secondes
-timerDispatch = 10       # exprimé en secondes
+instance = lire_instance("Work/instances/espagne.csv")
+timerFlow = 1500          # exprimé en secondes
+timerDispatch = 50       # exprimé en secondes
 notAlreadyWritten = true
 
 if notAlreadyWritten

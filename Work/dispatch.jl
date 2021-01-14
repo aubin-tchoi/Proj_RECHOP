@@ -16,19 +16,29 @@ function solveDispatchSmall(instance::Instance, flow::Array{Float64, 4}, j::Int,
 
     model = Model(with_optimizer(Gurobi.Optimizer,  TimeLimit = timeLimit))
 
+    println("Model initialized")
+
     #= Nombre max de camions dont on pourrait avoir besoin (+ 1 pour avoir au moins 1 camion)
     ici on prend les emballages séparés donc on aura potentiellement 1 camion quasi vide par emballage =#
-    K = sum(floor(Int64, instance.emballages[e].l * flow[e, j, u, f] / instance.L) for e = 1:instance.E) + 1
+    K = floor(Int64, (sum(instance.emballages[e].l * flow[e, j, u, f] for e = 1:instance.E) + 1) / instance.L) + 1
+
+    println("Nombre max de camions :")
+    println(K)
+    println("Flot :")
+    println(flow[:, j, u, f])
+    println("")
 
     #= x[k, e] nombre d'emballage e transportés par le camion k
        d[k] == 1 ssi le camion k est utilisé =#
     @variable(model, x[1:K, 1:instance.E], Int)
     @variable(model, d[1:K], Bin)
 
+    println("Variables initialized")
+
     #= McCormick pour linéariser le produit sum(x[k, :]) * d = sum(x)
     pas besoin d'imposer x = 0 => d = 0 puisque l'on minimise une fontion croissante de d =#
     for k = 1:K
-        @constraint(model, sum(x[k, :]) <= instance.E * instance.L * d[k])
+        @constraint(model, sum(x[k, :]) <= instance.E * instance.L * instance.emballages[2].l * d[k])
         @constraint(model, sum(x[k, :]) >= d[k])
         for e = 1:instance.E
             @constraint(model, x[k, e] >= 0)
@@ -45,10 +55,14 @@ function solveDispatchSmall(instance::Instance, flow::Array{Float64, 4}, j::Int,
         @constraint(model, sum(instance.emballages[e].l * x[k, e] for e = 1:instance.E) <= instance.L)
     end
 
+    println("Constraints initialized")
+
     #= Fonction objectif
     on prend ici un coût fixe égal à 1 par camion,
     ce coût vaut en fait ccam + cstop + gamma * d(u, f) mais il est le même pour tous les camions =#
     @objective(model, Min, sum(d[:]))
+
+    println("Objective initialized")
 
     JuMP.optimize!(model)
 
@@ -64,8 +78,12 @@ function solveDispatch(instance::Instance, flow::Array{Float64, 4}, timeLimit::I
     for j = 1:instance.J
         for u = 1:instance.U
             for f = 1:instance.F
-                # On résoud le PLNE qui répartit les emballages dans des camions pour chaque couple (u, f) et pour chaque jour
-                dispatch[j, u, f] = solveDispatchSmall(instance, flow, j, u, f, timeLimit)
+                if sum(flow[:, j, u, f]) >= 1
+                    # On résoud le PLNE qui répartit les emballages dans des camions pour chaque couple (u, f) et pour chaque jour
+                    dispatch[j, u, f] = solveDispatchSmall(instance, flow, j, u, f, timeLimit)
+                else
+                    dispatch[j, u, f] = [0]
+                end
             end
         end
     end
@@ -86,9 +104,14 @@ end
 function formatSolution(instance::Instance, dispatch::Array{Array{Int, 2}, 3})::Solution
     r = 1
     routes = Route[]
+    println(dispatch)
     for j = 1:instance.J
         for u = 1:instance.U
             for f = 1:instance.F
+                println(size(dispatch))
+                println(j)
+                println(u)
+                println(f)
                 for k = 1:size(dispatch[j, u, f], 1)
                     if isUsed(dispatch, j, u, f, k)
                         Q = Int[]
