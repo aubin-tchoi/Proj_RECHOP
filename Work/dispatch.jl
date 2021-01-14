@@ -25,11 +25,11 @@ function solveDispatchSmall(instance::Instance, flow::Array{Float64, 4}, j::Int,
     @variable(model, x[1:K, 1:instance.E], Int)
     @variable(model, d[1:K], Bin)
 
-    #= McCormick pour linéariser le produit sum(x) * d = sum(x)
+    #= McCormick pour linéariser le produit sum(x[k, :]) * d = sum(x)
     pas besoin d'imposer x = 0 => d = 0 puisque l'on minimise une fontion croissante de d =#
     for k = 1:K
-        @constraint(model, sum(x[k, e] for e = 1:instance.E) <= instance.E * instance.L * d[k])
-        @constraint(model, sum(x[k, e] for e = 1:instance.E) >= d[k])
+        @constraint(model, sum(x[k, :]) <= instance.E * instance.L * d[k])
+        @constraint(model, sum(x[k, :]) >= d[k])
         for e = 1:instance.E
             @constraint(model, x[k, e] >= 0)
         end
@@ -37,7 +37,7 @@ function solveDispatchSmall(instance::Instance, flow::Array{Float64, 4}, j::Int,
 
     # La demande doit être satisfaite
     for e = 1:instance.E
-        @constraint(model, sum(x[k, e] for k = 1:K) == flow[e, j, u, f])
+        @constraint(model, sum(x[:, e]) >= flow[e, j, u, f])
     end
 
     # Chargement
@@ -48,7 +48,7 @@ function solveDispatchSmall(instance::Instance, flow::Array{Float64, 4}, j::Int,
     #= Fonction objectif
     on prend ici un coût fixe égal à 1 par camion,
     ce coût vaut en fait ccam + cstop + gamma * d(u, f) mais il est le même pour tous les camions =#
-    @objective(model, Min, sum(d[k] for k = 1:K))
+    @objective(model, Min, sum(d[:]))
 
     JuMP.optimize!(model)
 
