@@ -47,8 +47,9 @@ function solveFlow(instance::Instance, timeLimit::Int)
 
     # Évolution du stock usine
     for e = 1:instance.E
-        for j = 2:instance.J
-            for u = 1:instance.U
+        for u = 1:instance.U
+            @constraint(model, su[e, u, 1] == instance.usines[u].s0[e])
+            for j = 2:instance.J
                 @constraint(model, su[e, u, j] == su[e, u, j - 1] + instance.usines[u].b⁺[e, j] - sum(x[e, j, u, f] for f = 1:instance.F))
             end
         end
@@ -66,8 +67,9 @@ function solveFlow(instance::Instance, timeLimit::Int)
 
     # Évolution du stock fournisseur
     for e = 1:instance.E
-        for j = 2:instance.J
-            for f = 1:instance.F
+        for f = 1:instance.F
+            @constraint(model, sf[e, f, 1] == instance.fournisseurs[f].s0[e])
+            for j = 2:instance.J
                 @constraint(model, sf[e, f, j] - sum(x[e, j, u, f] for u = 1:instance.U) >= sf[e, f, j - 1] - instance.fournisseurs[f].b⁻[e, j])
                 @constraint(model, sf[e, f, j] - sum(x[e, j, u, f] for u = 1:instance.U) >= 0)
             end

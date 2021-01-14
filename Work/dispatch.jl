@@ -72,21 +72,31 @@ function solveDispatch(instance::Instance, flow::Array{Float64, 4}, timeLimit::I
     return dispatch
 end
 
+#= true si le camion k est utilisé le jour j entre u et f =#
+function isUsed(dispatch::Array{Array{Int, 2}, 3}, j, u, f, k)
+    for e = 1:instance.E
+        if dispatch[j, u, f][k, e] >= 0
+            return true
+        end
+    end
+    return false
+end
+
 #= On transforme l'array dispatch en une instance de Solution pour pouvoir utiliser les fonctions déjà codées =#
-function formatSolution(instance::Instance, dispatch::Array{Array{Int, 2}, 3})
+function formatSolution(instance::Instance, dispatch::Array{Array{Int, 2}, 3})::Solution
     r = 1
     routes = Route[]
     for j = 1:instance.J
         for u = 1:instance.U
             for f = 1:instance.F
                 for k = 1:size(dispatch[j, u, f], 1)
-                    if sum(dispatch[j, u, f][k, e] for e = 1:instance.E) >= 1
+                    if isUsed(dispatch, j, u, f, k)
                         Q = Int[]
                         for e = 1:instance.E
                             push!(Q, dispatch[j, u, f][k, e])
                         end
                         stops = [RouteStop(f = f, Q = Q)]
-                        push!(routes, Route(r = r, j = j, x = size(dispatch[j, u, f], 1), u = u, F = f, stops = stops))
+                        push!(routes, Route(r = r, j = j, x = 1, u = u, F = 1, stops = stops))
                         r = r + 1
                     end
                 end

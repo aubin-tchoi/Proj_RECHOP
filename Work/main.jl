@@ -17,7 +17,7 @@ include("../code_Julia/cost.jl")
 instance = lire_instance("Work/instances/europe.csv")
 timerFlow = 45          # exprimé en secondes
 timerDispatch = 5       # exprimé en secondes
-#=
+
 #= flow est un array de dimension 4 : e, j, u, f
     flow[e, j, u, f] : combien l'usine u doit fournir au fournisseur f en emballage e le jour j =#
 flow = solveFlow(instance, timerFlow)
@@ -38,8 +38,8 @@ println(cost(sol, instance))
 
 #= On écrit la solution dans le fichier texte solution.txt =#
 write_sol_to_file(sol, "solution.txt")
-=#
 
+#=
 function writeCost(instance::Instance, solution::Solution, path::String)
     open(path, "w") do file
         U, F, J = instance.U, instance.F, instance.J
@@ -86,3 +86,4 @@ function writeCost(instance::Instance, solution::Solution, path::String)
 end
 
 writeCost(instance, lire_solution("solution.txt"), "totalCost.txt")
+=#
