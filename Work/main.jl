@@ -88,10 +88,9 @@ else
         end
     end
 
-    newSol = removeTruck(instance, lire_solution("solution.txt"))
-    writeCost(instance, newSol, "totalCost.txt")
+    newSol = removeTruck(instance, lire_solution("solution.txt"), 20)
 
-    
+    writeCost(instance, newSol, "totalCost.txt")
     write_sol_to_file(newSol, "solution2.txt")
 end
 

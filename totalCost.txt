@@ -1,8 +1,8 @@
 Coût usine : 
-3.1790957e7
+97988.0
 Coût fournisseurs : 
-1.0481109e7
+550890.0
 Coût routes : 
-138893.0
+1.004076e6
 Coût total : 
-4.2410959e7
+1.652954e6
