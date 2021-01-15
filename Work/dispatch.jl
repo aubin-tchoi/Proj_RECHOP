@@ -16,24 +16,14 @@ function solveDispatchSmall(instance::Instance, flow::Array{Float64, 4}, j::Int,
 
     model = Model(with_optimizer(Gurobi.Optimizer,  TimeLimit = timeLimit))
 
-    println("Model initialized")
-
     #= Nombre max de camions dont on pourrait avoir besoin (+ 1 pour avoir au moins 1 camion)
     ici on prend les emballages séparés donc on aura potentiellement 1 camion quasi vide par emballage =#
-    K = floor(Int64, (sum(instance.emballages[e].l * flow[e, j, u, f] for e = 1:instance.E) + 1) / instance.L) + instance.E
-
-    println("Nombre max de camions :")
-    println(K)
-    println("Flot :")
-    println(flow[:, j, u, f])
-    println("")
+    K = floor(Int64, (sum(instance.emballages[e].l * flow[e, j, u, f] for e = 1:instance.E) + 1) / instance.L) + 1
 
     #= x[k, e] nombre d'emballage e transportés par le camion k
        d[k] == 1 ssi le camion k est utilisé =#
     @variable(model, x[1:K, 1:instance.E] >= 0, Int)
     @variable(model, d[1:K], Bin)
-
-    println("Variables initialized")
 
     #= McCormick pour linéariser le produit sum(x[k, :]) * d = sum(x)
     pas besoin d'imposer x = 0 => d = 0 puisque l'on minimise une fontion croissante de d =#
@@ -52,14 +42,10 @@ function solveDispatchSmall(instance::Instance, flow::Array{Float64, 4}, j::Int,
         @constraint(model, sum(instance.emballages[e].l * x[k, e] for e = 1:instance.E) <= instance.L)
     end
 
-    println("Constraints initialized")
-
     #= Fonction objectif
     on prend ici un coût fixe égal à 1 par camion,
     ce coût vaut en fait ccam + cstop + gamma * d(u, f) mais il est le même pour tous les camions =#
     @objective(model, Min, sum(d[:]))
-
-    println("Objective initialized")
 
     JuMP.optimize!(model)
 

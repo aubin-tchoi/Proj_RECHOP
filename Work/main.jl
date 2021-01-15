@@ -16,10 +16,10 @@ include("../code_Julia/feasibility.jl")
 include("../code_Julia/cost.jl")
 
 #= Ouverture de l'instance (pas plus d'une minute) =#
-instance = lire_instance("instances/europe.csv")
-timerFlow = 1000          # exprimé en secondes
-timerDispatch = 50       # exprimé en secondes
-notAlreadyWritten = false
+instance = lire_instance("Work/instances/europe.csv")
+timerFlow = 100000          # exprimé en secondes
+timerDispatch = 100       # exprimé en secondes
+notAlreadyWritten = true
 
 if notAlreadyWritten
     #= flow est un array de dimension 4 : e, j, u, f
@@ -89,6 +89,6 @@ else
         end
     end
 
+    sol = lire_solution("solution.txt")
+    writeCost(instance, sol, "totalCost.txt")
 end
-
-println(feasibility(lire_solution("solution.txt"), instance))
