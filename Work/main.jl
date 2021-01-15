@@ -31,8 +31,11 @@ sol = Solution(R = 1, routes = Array{Route, 1}(undef, 0))
 
 if createNewSolution
     #= flow est un array de dimension 4 : e, j, u, f
-        flow[e, j, u, f] : combien l'usine u doit fournir au fournisseur f en emballage e le jour j =#
-    flow = solveFlow(instance, timerFlow, true)
+        flow[e, j, u, f] : combien l'usine u doit fournir au fournisseur f en emballage e le jour j
+        Le dernier argument correspond au fait de relâcher ou non le problème;
+        on peut laisser les variables du PLNE sous forme de float, les solutions seront entières
+        et le problème est beaucoup plus facile à résoudre (plus rapide) =#
+    flow = solveFlow(instance, timerFlow, false)
     println("Flow done")
 
     #= On doit maintenant résoudre un PLNE pour chaque triplet (j, u, f) qui permettra de trouver
@@ -50,6 +53,7 @@ if createNewSolution
 
     #= On écrit la solution dans le fichier texte solution.txt =#
     write_sol_to_file(sol, firstText)
+    writeCost(instance, sol, "totalCost.txt")
     println(feasibility(sol, instance))
 
 else
