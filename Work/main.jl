@@ -17,7 +17,7 @@ include("upgrade.jl")
 include("format.jl")
 
 #= Ouverture de l'instance (pas plus d'une minute) =#
-instance = lire_instance("Work/instances/espagne.csv")
+instance = lire_instance("Work/instances/europe.csv")
 
 # Variables globales
 timerFlow = 100000          # Exprimé en secondes
@@ -27,10 +27,12 @@ createNewSolution = true
 firstText = "solution.txt"
 secondText = "solution2.txt"
 
+sol = Solution(R = 1, routes = Array{Route, 1}(undef, 0))
+
 if createNewSolution
     #= flow est un array de dimension 4 : e, j, u, f
         flow[e, j, u, f] : combien l'usine u doit fournir au fournisseur f en emballage e le jour j =#
-    flow = solveFlow(instance, timerFlow, false)
+    flow = solveFlow(instance, timerFlow, true)
     println("Flow done")
 
     #= On doit maintenant résoudre un PLNE pour chaque triplet (j, u, f) qui permettra de trouver
@@ -55,8 +57,8 @@ else
 end
 
 for iteration = 1:numberUpgrades
-    sol = removeTruck(instance, sol, 5)
-    sol = combineTrucks(instance, sol, 50)
+    global sol = removeTruck(instance, sol, 5)
+    global sol = combineTrucks(instance, sol, 50)
     println(feasibility(sol, instance))
     writeCost(instance, sol, "totalCost.txt")
     write_sol_to_file(sol, secondText)

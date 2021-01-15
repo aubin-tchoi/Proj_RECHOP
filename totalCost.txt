@@ -1,0 +1,8 @@
+Coût usine : 
+302668.0
+Coût fournisseurs : 
+32651.0
+Coût routes : 
+36966.0
+Coût total : 
+372285.0

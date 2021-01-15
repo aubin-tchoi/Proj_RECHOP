@@ -7,8 +7,6 @@ include("fournisseur.jl")
 include("graphe.jl")
 include("instance.jl")
 include("route.jl")
-include("solution.jl")
-include("write.jl")
 
 #= On écrit le PLNE pour un jour et un couple (u, f) =#
 function solveDispatchSmall(instance::Instance, flow::Array{Float64, 4}, j::Int, u::Int, f::Int, timeLimit::Int)

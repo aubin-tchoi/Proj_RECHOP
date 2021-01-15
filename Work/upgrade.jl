@@ -4,15 +4,10 @@ include("dimensions.jl")
 include("emballage.jl")
 include("usine.jl")
 include("fournisseur.jl")
-include("graphe.jl")
 include("instance.jl")
 include("route.jl")
 include("solution.jl")
-include("write.jl")
-include("flow.jl")
-include("dispatch.jl")
-include("../code_Julia/cost.jl")
-include("../code_Julia/feasibility.jl")
+include("cost.jl")
 
 #= Retire les routes inutiles d'une solution =#
 function removeTruck(instance::Instance, solution::Solution, nIter::Int)::Solution

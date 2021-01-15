@@ -6,9 +6,6 @@ include("usine.jl")
 include("fournisseur.jl")
 include("graphe.jl")
 include("instance.jl")
-include("route.jl")
-include("solution.jl")
-include("write.jl")
 
 function solveFlow(instance::Instance, timeLimit::Int, isInteger::Bool)
 
