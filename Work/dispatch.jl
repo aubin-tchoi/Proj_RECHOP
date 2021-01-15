@@ -34,7 +34,7 @@ function solveDispatchSmall(instance::Instance, flow::Array{Float64, 4}, j::Int,
 
     # La demande doit être satisfaite
     for e = 1:instance.E
-        @constraint(model, sum(x[:, e]) >= flow[e, j, u, f])
+        @constraint(model, sum(x[:, e]) == flow[e, j, u, f])
     end
 
     # Chargement

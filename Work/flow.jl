@@ -99,18 +99,30 @@ end
 function solveFlowEbyE(instance::Instance, timeLimit::Int, isInteger::Bool)
 
     flowSol = Array{Float64, 4}(undef, instance.E, instance.J, instance.U, instance.F)
+
     for e = 1:instance.E
-        model = Model(with_optimizer(Gurobi.Optimizer,  TimeLimit = timeLimit))
+
+        model = Model(with_optimizer(Gurobi.Optimizer, TimeLimit = timeLimit))
 
         # x correspond à la quantité transportée, su au stock usine et sf au stock fournisseur
         @variable(model, x[1:instance.J, 1:instance.U, 1:instance.F] >= 0, integer = isInteger)
         @variable(model, su[1:instance.U, 1:instance.J] >= 0, integer = isInteger)
-        @variable(model, sf[1:instance.F, 1:instance.J], integer = isInteger)
+        @variable(model, sf[1:instance.F, 1:instance.J] >= 0, integer = isInteger)
+        @variable(model, k[1:instance.J, 1:instance.U, 1:instance.F] >= 0, integer = false)
 
         # su', sf', sf" pour linéariser les max
         @variable(model, su1[1:instance.U, 1:instance.J])
         @variable(model, sf1[1:instance.F, 1:instance.J])
         @variable(model, sf2[1:instance.F, 1:instance.J])
+
+        # Nombre de camions
+        for u = 1:instance.U
+            for j = 1:instance.J
+                for f = 1:instance.F
+                    @constraint(model, k[j, u, f] >= x[j, u, f] * instance.emballages[e].l / instance.L + 1)
+                end
+            end
+        end
 
         # Évolution du stock usine
         for u = 1:instance.U
@@ -149,6 +161,7 @@ function solveFlowEbyE(instance::Instance, timeLimit::Int, isInteger::Bool)
 
         # Fonction objectif (coût route, coût stock excédentaire usine, coût stock excédentaire/déficitaire fournisseur)
         @objective(model, Min,
+            sum(k[j, u, f] * instance.ccam for j in 1:instance.J, u in 1:instance.U, f in 1:instance.F) +
             sum((x[j, u, f] * instance.emballages[e].l / instance.L) * instance.γ * instance.graphe.d[instance.usines[u].v, instance.fournisseurs[f].v]
                             for f in 1:instance.F, u in 1:instance.U, j in 1:instance.J)
             +

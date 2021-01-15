@@ -14,6 +14,7 @@ include("dispatch.jl")
 include("upgrade.jl")
 include("../code_Julia/feasibility.jl")
 include("../code_Julia/cost.jl")
+include("../code_Julia/feasibility.jl")
 
 #= Ouverture de l'instance (pas plus d'une minute) =#
 instance = lire_instance("Work/instances/europe.csv")
@@ -41,7 +42,7 @@ if notAlreadyWritten
     println(cost(sol, instance))
 
     #= On écrit la solution dans le fichier texte solution.txt =#
-    write_sol_to_file(sol, "solution.txt")
+    write_sol_to_file(sol, "solution2.txt")
 
 else
     function writeCost(instance::Instance, solution::Solution, path::String)
@@ -90,5 +91,12 @@ else
     end
 
     sol = lire_solution("solution.txt")
-    writeCost(instance, sol, "totalCost.txt")
+    
+    for iter = 1:800
+        sol = removeTruck(instance, sol, 5)
+        sol = combineTrucks(instance, sol, 50)
+        println(feasibility(sol, instance))
+        writeCost(instance, sol, "totalCost.txt")
+        write_sol_to_file(sol, "solution3.txt")
+    end
 end
