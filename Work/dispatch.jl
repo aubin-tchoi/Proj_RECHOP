@@ -34,7 +34,7 @@ function solveDispatchSmall(instance::Instance, flow::Array{Float64, 4}, j::Int,
 
     # La demande doit être satisfaite
     for e = 1:instance.E
-        @constraint(model, sum(x[:, e]) >= flow[e, j, u, f])
+        @constraint(model, sum(x[:, e]) == flow[e, j, u, f])
     end
 
     # Chargement
@@ -85,7 +85,7 @@ end
 
 #= On transforme l'array dispatch en une instance de Solution pour pouvoir utiliser les fonctions déjà codées =#
 function formatSolution(instance::Instance, dispatch::Array{Array{Int, 2}, 3})::Solution
-    r = 0
+    r = 1
     routes = Route[]
     for j = 1:instance.J
         for u = 1:instance.U

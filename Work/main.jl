@@ -19,7 +19,7 @@ include("../code_Julia/feasibility.jl")
 instance = lire_instance("instances/europe.csv")
 timerFlow = 1000          # exprimé en secondes
 timerDispatch = 50       # exprimé en secondes
-notAlreadyWritten = true
+notAlreadyWritten = false
 
 if notAlreadyWritten
     #= flow est un array de dimension 4 : e, j, u, f
@@ -41,7 +41,7 @@ if notAlreadyWritten
     println(cost(sol, instance))
 
     #= On écrit la solution dans le fichier texte solution.txt =#
-    write_sol_to_file(sol, "solution.txt")
+    write_sol_to_file(sol, "solution2.txt")
 
 else
     function writeCost(instance::Instance, solution::Solution, path::String)
@@ -90,11 +90,13 @@ else
     end
 
     sol = lire_solution("solution.txt")
-    newSol = removeTruck(instance, sol, 20)
-    newSol = combineTrucks(instance, sol, 50)
-
-    writeCost(instance, newSol, "totalCost.txt")
-    write_sol_to_file(newSol, "solution2.txt")
+    
+    for iter = 1:800
+        newSol = removeTruck(instance, sol, 5)
+        newSol = combineTrucks(instance, sol, 50)
+        println(feasibility(newSol, instance))
+        writeCost(instance, newSol, "totalCost.txt")
+        write_sol_to_file(newSol, "solution3.txt")
+    end
 end
 
-println(feasibility(sol, instance))
