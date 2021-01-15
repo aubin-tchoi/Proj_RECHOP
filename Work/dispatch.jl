@@ -1,6 +1,5 @@
 using JuMP, Gurobi
 
-#INCLUDES
 include("dimensions.jl")
 include("emballage.jl")
 include("usine.jl")
@@ -18,7 +17,7 @@ function solveDispatchSmall(instance::Instance, flow::Array{Float64, 4}, j::Int,
 
     #= Nombre max de camions dont on pourrait avoir besoin (+ 1 pour avoir au moins 1 camion)
     ici on prend les emballages séparés donc on aura potentiellement 1 camion quasi vide par emballage =#
-    K = floor(Int64, (sum(instance.emballages[e].l * flow[e, j, u, f] for e = 1:instance.E) + 1) / instance.L) + 1
+    K = floor(Int64, (sum(instance.emballages[e].l * flow[e, j, u, f] for e = 1:instance.E) + 1) / instance.L) + instance.E
 
     #= x[k, e] nombre d'emballage e transportés par le camion k
        d[k] == 1 ssi le camion k est utilisé =#
@@ -71,38 +70,4 @@ function solveDispatch(instance::Instance, flow::Array{Float64, 4}, timeLimit::I
         end
     end
     return dispatch
-end
-
-#= true si le camion k est utilisé le jour j entre u et f =#
-function isUsed(dispatch::Array{Array{Int, 2}, 3}, j, u, f, k)
-    for e = 1:instance.E
-        if dispatch[j, u, f][k, e] > 0
-            return true
-        end
-    end
-    return false
-end
-
-#= On transforme l'array dispatch en une instance de Solution pour pouvoir utiliser les fonctions déjà codées =#
-function formatSolution(instance::Instance, dispatch::Array{Array{Int, 2}, 3})::Solution
-    r = 1
-    routes = Route[]
-    for j = 1:instance.J
-        for u = 1:instance.U
-            for f = 1:instance.F
-                for k = 1:size(dispatch[j, u, f], 1)
-                    if isUsed(dispatch, j, u, f, k)
-                        Q = Int[]
-                        for e = 1:instance.E
-                            push!(Q, dispatch[j, u, f][k, e])
-                        end
-                        stops = [RouteStop(f = f, Q = Q)]
-                        push!(routes, Route(r = r, j = j, x = 1, u = u, F = 1, stops = stops))
-                        r = r + 1
-                    end
-                end
-            end
-        end 
-    end
-    return Solution(R = size(routes, 1), routes = routes)
 end
